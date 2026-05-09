@@ -115,7 +115,7 @@ function hasTelegramLinks($text, $entities = [], $chat_id = false, $is_reply = f
 }
 // ================= LOG BAN =================
 function logCS($chat_id, $chat_title, $user_id, $nome_user, $filtro, $message, $ban) {
-    $log_dir  = __DIR__ . "/group_data/$chat_id";
+    $log_dir  = __DIR__ . "/logs/$chat_id";
     $log_file = "$log_dir/counter_spam_action_log.json";
 
     ensureDir($log_dir);
