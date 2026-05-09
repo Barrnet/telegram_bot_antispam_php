@@ -30,6 +30,8 @@ if (
 ) {
     $is_forwarded = true;
 }
+/* QUOTE */
+$quote_text = $update["message"]["quote"]["text"] ?? false;
 /* REPLY */
 $nome_quotato = $update["message"]["reply_to_message"]["from"]["first_name"] ?? false;
 $id_quotato = $update["message"]["reply_to_message"]["from"]["id"] ?? false;

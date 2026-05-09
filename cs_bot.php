@@ -11,6 +11,8 @@ $update = json_decode($content, true);
 if (!$update) exit;
 // Variabili
 include_once("definizione_variabili.php");
+// Testo completo da analizzare (messaggio + eventuale citazione)
+$testo_analisi = implode(" ", array_filter([$message, $quote_text]));
 // Carico filtri spam
 $array_filtro = json_decode(file_get_contents("./filtro_spam.json"), true);
 // ==========================
@@ -45,11 +47,17 @@ if ($user_count >= MIN_MSG_FOR_WHITELIST) exit;
 // Messaggio vuoto → nessun filtro da applicare
 if (!$message) exit;
 // ==========================
+// UNICODE SOSPETTO
+// ==========================
+if (hasSuspiciousUnicode($testo_analisi)) {
+    handleSpam($id_chat, $id_message, $id_user, $title_chat, $nome_user, "unicode_sospetto", $message, $enable_ban);
+}
+// ==========================
 // FILTRO LINK TELEGRAM
 // ==========================
 $all_entities = array_merge($message_entities, $caption_entities);
 $is_reply     = isset($update["message"]["reply_to_message"]);
-if (hasTelegramLinks($message, $all_entities, $id_chat, $is_reply, $user_count)) {
+if (hasTelegramLinks($testo_analisi, $all_entities, $id_chat, $is_reply, $user_count)) {
     handleSpam($id_chat, $id_message, $id_user, $title_chat, $nome_user, "link_telegram", $message, $enable_ban);
 }
 // ==========================
@@ -57,17 +65,11 @@ if (hasTelegramLinks($message, $all_entities, $id_chat, $is_reply, $user_count))
 // ==========================
 if ($array_filtro) {
     foreach ($array_filtro as $nome_filtro => $filtro) {
-        $conteggio = contaCorrispondenze($message, explode(",", $filtro["array_trigger"]));
+        $conteggio = contaCorrispondenze($testo_analisi, explode(",", $filtro["array_trigger"]));
         if ($conteggio >= $filtro["conteggio_trigger"]) {
             handleSpam($id_chat, $id_message, $id_user, $title_chat, $nome_user, $nome_filtro, $message, $enable_ban);
         }
     }
-}
-// ==========================
-// UNICODE SOSPETTO
-// ==========================
-if (hasSuspiciousUnicode($message)) {
-    handleSpam($id_chat, $id_message, $id_user, $title_chat, $nome_user, "unicode_sospetto", $message, $enable_ban);
 }
 // ==========================
 // UTENTE PULITO — registra username come menzionabile
