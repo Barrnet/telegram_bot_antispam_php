@@ -16,7 +16,7 @@ $array_filtro = json_decode(file_get_contents("./filtro_spam.json"), true);
 // ==========================
 // CONTROLLO SE ABILITARE I BAN
 // ==========================
-$file_data_primo_messaggio = __DIR__ . "/group_data/$id_chat/first_message_date.json";
+$file_data_primo_messaggio = __DIR__ . "/group_data/$id_chat/first_message_date.txt";
 if (!file_exists($file_data_primo_messaggio)) {
 	ensureDir(__DIR__ . "/group_data/$id_chat");
     file_put_contents($file_data_primo_messaggio, $date_message, LOCK_EX);
