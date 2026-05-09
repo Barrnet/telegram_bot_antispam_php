@@ -50,7 +50,7 @@ if (!$message) exit;
 // UNICODE SOSPETTO
 // ==========================
 if (hasSuspiciousUnicode($testo_analisi)) {
-    handleSpam($id_chat, $id_message, $id_user, $title_chat, $nome_user, "unicode_sospetto", $message, $enable_ban);
+    handleSpam($id_chat, $id_message, $id_user, $title_chat, $nome_user, "unicode_sospetto", $testo_analisi, $enable_ban);
 }
 // ==========================
 // FILTRO LINK TELEGRAM
@@ -58,7 +58,7 @@ if (hasSuspiciousUnicode($testo_analisi)) {
 $all_entities = array_merge($message_entities, $caption_entities);
 $is_reply     = isset($update["message"]["reply_to_message"]);
 if (hasTelegramLinks($testo_analisi, $all_entities, $id_chat, $is_reply, $user_count)) {
-    handleSpam($id_chat, $id_message, $id_user, $title_chat, $nome_user, "link_telegram", $message, $enable_ban);
+    handleSpam($id_chat, $id_message, $id_user, $title_chat, $nome_user, "link_telegram", $testo_analisi, $enable_ban);
 }
 // ==========================
 // FILTRI SPAM
@@ -67,7 +67,7 @@ if ($array_filtro) {
     foreach ($array_filtro as $nome_filtro => $filtro) {
         $conteggio = contaCorrispondenze($testo_analisi, explode(",", $filtro["array_trigger"]));
         if ($conteggio >= $filtro["conteggio_trigger"]) {
-            handleSpam($id_chat, $id_message, $id_user, $title_chat, $nome_user, $nome_filtro, $message, $enable_ban);
+            handleSpam($id_chat, $id_message, $id_user, $title_chat, $nome_user, $nome_filtro, $testo_analisi, $enable_ban);
         }
     }
 }
