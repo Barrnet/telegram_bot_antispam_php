@@ -59,13 +59,15 @@ function hasSuspiciousUnicode($text) {
             return true;
         }
     }
-    // Mix sospetto: ASCII + non-ASCII che NON siano lettere latine estese
+	//rimuove le emoji per evitare falsi positivi
+	$text_no_emoji = preg_replace('/[\x{1F000}-\x{1FFFF}\x{2600}-\x{27BF}\x{FE00}-\x{FE0F}]/u', '', $text);
+	// Mix sospetto: ASCII + non-ASCII che NON siano lettere latine estese
     // Lettere latine estese (es. è, à, ù, ò, ç) sono nel range U+00C0–U+024F: escluse
-    if (
-        preg_match('/[a-zA-Z]/', $text) &&
-        preg_match('/[^\x00-\x7F]/', $text) &&
-        preg_match('/[\x{0250}-\x{1CFF}\x{1E00}-\x{FFFF}]/u', $text)
-    ) {
+	if (
+		preg_match('/[a-zA-Z]/', $text_no_emoji) &&
+		preg_match('/[^\x00-\x7F]/', $text_no_emoji) &&
+		preg_match('/[\x{0250}-\x{1CFF}\x{1E00}-\x{FFFF}]/u', $text_no_emoji)
+	) {
         return true;
     }
     return false;

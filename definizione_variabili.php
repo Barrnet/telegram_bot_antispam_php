@@ -9,6 +9,8 @@ $tipo_chat = $update["message"]["chat"]["type"] ?? false;
 /* UTENTE */
 $id_user = $update["message"]["from"]["id"] ?? false;
 $nome_user = $update["message"]["from"]["first_name"] ?? false;
+/* FORWARD */
+$forward_user_id = $update["message"]["forward_origin"]["sender_user"]["id"] ?? false;
 /* MESSAGGIO (FIX TEXT + CAPTION) */
 if (isset($update["message"]["text"])) {
     $message = $update["message"]["text"];

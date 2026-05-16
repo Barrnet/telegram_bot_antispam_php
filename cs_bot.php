@@ -28,14 +28,17 @@ if (!file_exists($file_data_primo_messaggio)) {
 	ensureDir(__DIR__ . "/group_data/$id_chat");
     file_put_contents($file_data_primo_messaggio, $date_message, LOCK_EX);
 }
-
 /* Carico whitelist globale*/
-$file_whitelist_globale = "global_whitelist.json";
+$file_whitelist_globale = "./global_whitelist.json";
 if (file_exists($file_whitelist_globale)) {
-	$whitelist_globale= json_decode(file_get_contents($file_whitelist_globale), true);
-	if (!empty(array_filter($whitelist_globale, fn($item) => (int)$item['id'] === (int)$id_user))) exit;
+    $whitelist_globale = json_decode(file_get_contents($file_whitelist_globale), true);
+    $id_da_controllare = array_filter([(int)$id_user, (int)$forward_user_id]);
+    $in_whitelist = array_filter($whitelist_globale, fn($item) => in_array((int)$item['id'], $id_da_controllare));
+    if (!empty($in_whitelist)){
+		updateUserCountSmart($id_chat, $id_user, MIN_MSG_FOR_WHITELIST);
+		exit;
+		}
 }
-
 $bot_permissions = getBotPermissions($id_chat);
 //se non può cancellare messaggi, skippa tutti i controlli
 if (!$bot_permissions['can_delete']) exit;
