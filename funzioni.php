@@ -60,7 +60,7 @@ function hasSuspiciousUnicode($text) {
         }
     }
 	//rimuove le emoji per evitare falsi positivi
-	$text_no_emoji = preg_replace('/[\x{1F000}-\x{1FFFF}\x{2600}-\x{27BF}\x{FE00}-\x{FE0F}]/u', '', $text);
+	$text_no_emoji = preg_replace('/[\x{2600}-\x{27BF}\x{1F300}-\x{1F9FF}\x{1FA00}-\x{1FAFF}]\x{FE0F}?|[\x{2702}-\x{27BF}\x{2194}-\x{2199}\x{2300}-\x{23FF}\x{2B00}-\x{2BFF}\x{FE0F}]/u', '', $text);
 	// Mix sospetto: ASCII + non-ASCII che NON siano lettere latine estese
     // Lettere latine estese (es. è, à, ù, ò, ç) sono nel range U+00C0–U+024F: escluse
 	if (
