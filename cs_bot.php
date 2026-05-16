@@ -14,7 +14,12 @@ include_once("definizione_variabili.php");
 // Testo completo da analizzare (messaggio + eventuale citazione)
 $testo_analisi = implode(" ", array_filter([$message, $quote_text]));
 // Carico filtri spam
-$array_filtro = json_decode(file_get_contents("./filtro_spam.json"), true);
+if (file_exists("./filtro_spam.json")){
+	$array_filtro = json_decode(file_get_contents("./filtro_spam.json"), true);
+}else{
+	$array_filtro = false;
+}
+
 // ==========================
 // CONTROLLO SE ABILITARE I BAN
 // ==========================
@@ -23,6 +28,14 @@ if (!file_exists($file_data_primo_messaggio)) {
 	ensureDir(__DIR__ . "/group_data/$id_chat");
     file_put_contents($file_data_primo_messaggio, $date_message, LOCK_EX);
 }
+
+/* Carico whitelist globale*/
+$file_whitelist_globale = "global_whitelist.json";
+if (file_exists($file_whitelist_globale)) {
+	$whitelist_globale= json_decode(file_get_contents($file_whitelist_globale), true);
+	if (!empty(array_filter($whitelist_globale, fn($item) => (int)$item['id'] === (int)$id_user))) exit;
+}
+
 $bot_permissions = getBotPermissions($id_chat);
 //se non può cancellare messaggi, skippa tutti i controlli
 if (!$bot_permissions['can_delete']) exit;
