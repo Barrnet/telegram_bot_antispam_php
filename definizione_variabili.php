@@ -23,15 +23,11 @@ $message_entities = $update["message"]["entities"] ?? [];
 $caption_entities = $update["message"]["caption_entities"] ?? [];
 $id_message = $update["message"]["message_id"] ?? false;
 $date_message = $update["message"]["date"] ?? false;
-/* FORWARD (FIX COMPLETO) */
-$is_forwarded = false;
-if (
-    isset($update["message"]["forward_from"]) ||
-    isset($update["message"]["forward_from_chat"]) ||
-    isset($update["message"]["forward_sender_name"])
-) {
-    $is_forwarded = true;
-}
+/* FORWARD */
+$is_forwarded = isset($update["message"]["forward_origin"])
+             || isset($update["message"]["forward_from"])
+             || isset($update["message"]["forward_from_chat"])
+             || isset($update["message"]["forward_sender_name"]);
 /* QUOTE */
 $quote_text = $update["message"]["quote"]["text"] ?? false;
 /* REPLY */

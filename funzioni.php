@@ -47,7 +47,43 @@ function contaCorrispondenze($testo, $arrayDiStringhe) {
     }
     return $conteggio;
 }
+//costruisco regex emoji
+function build_emoji_regex() {
+    $txt = file_get_contents('https://unicode.org/Public/emoji/15.1/emoji-test.txt');
+	if ($txt === false) return false;
+    $emojis = [];
+
+    foreach (explode("\n", $txt) as $line) {
+        if (str_starts_with(trim($line), '#') || trim($line) === '') continue;
+        if (!str_contains($line, 'fully-qualified')) continue;
+
+        $parts = explode(';', $line);
+        $codepoints = array_map('trim', explode(' ', trim($parts[0])));
+
+        // Costruisce la sequenza di caratteri
+        $seq = '';
+        foreach ($codepoints as $cp) {
+            $seq .= mb_chr(hexdec($cp), 'UTF-8');
+        }
+        $emojis[] = preg_quote($seq, '/');
+    }
+
+    // Ordina dal più lungo al più corto (le sequenze ZWJ prima)
+    usort($emojis, fn($a, $b) => strlen($b) - strlen($a));
+	ensureDir("./bot_data");
+	file_put_contents("./bot_data/emoji_regex.txt",'/(' . implode('|', $emojis) . ')/u', LOCK_EX);
+	return true;
+}
 function hasSuspiciousUnicode($text) {
+	//carica pattern emoji, lo ricrea se non esiste il file
+	ensureDir("./bot_data");	
+    if (!file_exists("./bot_data/emoji_regex.txt")) {
+        if (!build_emoji_regex()) return null;
+    }
+	$pattern_emoji = file_get_contents("./bot_data/emoji_regex.txt");
+	if (@preg_match($pattern_emoji, '') === false) return null;
+	//rimuove le emoji per evitare falsi positivi
+	$text_no_emoji = preg_replace($pattern_emoji, '', $text);
     $patterns = [
         '/[\x{0400}-\x{04FF}]/u',                  // Cirillico
         '/[\x{4E00}-\x{9FFF}\x{3400}-\x{4DBF}]/u', // Cinese
@@ -55,12 +91,10 @@ function hasSuspiciousUnicode($text) {
         '/[\x{1D400}-\x{1D7FF}]/u',                // Simboli matematici Unicode (bold/italic/script)
     ];
     foreach ($patterns as $pattern) {
-        if (preg_match($pattern, $text)) {
+        if (preg_match($pattern, $text_no_emoji)) {
             return true;
         }
     }
-	//rimuove le emoji per evitare falsi positivi
-	$text_no_emoji = preg_replace('/[\x{2600}-\x{27BF}\x{1F300}-\x{1F9FF}\x{1FA00}-\x{1FAFF}]\x{FE0F}?|[\x{2702}-\x{27BF}\x{2194}-\x{2199}\x{2300}-\x{23FF}\x{2B00}-\x{2BFF}\x{FE0F}]/u', '', $text);
 	// Mix sospetto: ASCII + non-ASCII che NON siano lettere latine estese
     // Lettere latine estese (es. è, à, ù, ò, ç) sono nel range U+00C0–U+024F: escluse
 	if (

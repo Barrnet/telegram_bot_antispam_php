@@ -14,8 +14,9 @@ include_once("definizione_variabili.php");
 // Testo completo da analizzare (messaggio + eventuale citazione)
 $testo_analisi = implode(" ", array_filter([$message, $quote_text]));
 // Carico filtri spam
-if (file_exists("./filtro_spam.json")){
-	$array_filtro = json_decode(file_get_contents("./filtro_spam.json"), true);
+ensureDir("./bot_data");
+if (file_exists("./bot_data/filtro_spam.json")){
+	$array_filtro = json_decode(file_get_contents("./bot_data/filtro_spam.json"), true);
 }else{
 	$array_filtro = false;
 }
@@ -29,7 +30,8 @@ if (!file_exists($file_data_primo_messaggio)) {
     file_put_contents($file_data_primo_messaggio, $date_message, LOCK_EX);
 }
 /* Carico whitelist globale*/
-$file_whitelist_globale = "./global_whitelist.json";
+ensureDir("./bot_data");
+$file_whitelist_globale = "./bot_data/global_whitelist.json";
 if (file_exists($file_whitelist_globale)) {
     $whitelist_globale = json_decode(file_get_contents($file_whitelist_globale), true);
     $id_da_controllare = array_filter([(int)$id_user, (int)$forward_user_id]);
@@ -65,7 +67,11 @@ if (!$message) exit;
 // ==========================
 // UNICODE SOSPETTO
 // ==========================
-if (hasSuspiciousUnicode($testo_analisi)) {
+$unicode_check = hasSuspiciousUnicode($testo_analisi);
+if ($unicode_check === null) {
+    sendMessage($id_chat, "⚠️ Errore interno: impossibile caricare il filtro emoji. Controllo Unicode disabilitato.");
+    // non fare exit, gli altri filtri continuano a funzionare
+} elseif ($unicode_check === true) {
     handleSpam($id_chat, $id_message, $id_user, $title_chat, $nome_user, "unicode_sospetto", $testo_analisi, $enable_ban);
 }
 // ==========================
