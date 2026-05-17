@@ -41,8 +41,8 @@ function contaCorrispondenze($testo, $arrayDiStringhe) {
     $testo = strtoupper($testo);
     foreach ($arrayDiStringhe as $stringa) {
         $stringa = trim(strtoupper($stringa));
-        if ($stringa !== "") {
-            $conteggio += substr_count($testo, $stringa);
+        if ($stringa !== "" && substr_count($testo, $stringa) > 0) {
+            $conteggio++;  // conta 1 indipendentemente da quante volte appare
         }
     }
     return $conteggio;
