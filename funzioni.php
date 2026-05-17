@@ -107,7 +107,7 @@ function hasSuspiciousUnicode($text) {
     return false;
 }
 // ================= FILTRO LINK TELEGRAM =================
-function hasTelegramLinks($text, $entities = [], $chat_id = false, $is_reply = false, $user_count = 0) {
+function hasTelegramLinks($text, $entities = [], $chat_id = false, $chat_username = false, $is_reply = false, $user_count = 0) {
     $bot_username = strtolower(str_replace("@", "", BOT_ID));
     $whitelist_mentions = [$bot_username, "admin"];
     if ($chat_id) {
@@ -118,9 +118,14 @@ function hasTelegramLinks($text, $entities = [], $chat_id = false, $is_reply = f
         );
     }
     // 1. Link diretti t.me / telegram.me — bloccati sempre, anche in reply
-    if (preg_match('/(https?:\/\/)?(t\.me|telegram\.me)\//i', $text)) {
-        return true;
-    }
+    if (preg_match_all('/(https?:\/\/)?(t\.me|telegram\.me)\/([a-zA-Z0-9_]+)/i', $text, $matches)) {
+        foreach ($matches[3] as $linked_slug) {
+            // Se il link punta allo stesso gruppo, lo ignora
+            if ($chat_username && strtolower($linked_slug) === strtolower($chat_username)) {
+                continue;
+            }
+            return true;
+        }
     // 2. Mention nel testo — in reply da utente con storico si ignorano
     $skip_mention_check = $is_reply && $user_count >= MIN_MSG_FOR_REPLY_WITH_TAG;
     if (!$skip_mention_check && preg_match_all('/@([a-zA-Z0-9_]{3,})/', $text, $matches)) {
@@ -134,11 +139,13 @@ function hasTelegramLinks($text, $entities = [], $chat_id = false, $is_reply = f
     foreach ($entities as $e) {
         if (!isset($e['type'])) continue;
         // Link cliccabile che punta a Telegram — bloccato sempre
-        if ($e['type'] === 'text_link' && isset($e['url'])) {
-            if (preg_match('/(t\.me|telegram\.me)/i', $e['url'])) {
-                return true;
-            }
-        }
+		if ($e['type'] === 'text_link' && isset($e['url'])) {
+			if (preg_match('/(t\.me|telegram\.me)\/([a-zA-Z0-9_]+)/i', $e['url'], $m)) {
+				if (!$chat_username || strtolower($m[2]) !== strtolower($chat_username)) {
+					return true;
+				}
+			}
+		}
         // Mention cliccabile — in reply da utente con storico si ignora
         if ($e['type'] === 'mention' && !$skip_mention_check && isset($e['offset'], $e['length'])) {
             $mentioned = mb_substr($text, $e['offset'] + 1, $e['length'] - 1);

@@ -6,6 +6,7 @@ $username_bot = str_replace("@","",BOT_ID);
 $id_chat = $update["message"]["chat"]["id"] ?? false;
 $title_chat = $update["message"]["chat"]["title"] ?? false;
 $tipo_chat = $update["message"]["chat"]["type"] ?? false;
+$username_chat = $update["message"]["chat"]["username"] ?? false;
 /* UTENTE */
 $id_user = $update["message"]["from"]["id"] ?? false;
 $nome_user = $update["message"]["from"]["first_name"] ?? false;
