@@ -126,6 +126,7 @@ function hasTelegramLinks($text, $entities = [], $chat_id = false, $chat_usernam
             }
             return true;
         }
+	}
     // 2. Mention nel testo — in reply da utente con storico si ignorano
     $skip_mention_check = $is_reply && $user_count >= MIN_MSG_FOR_REPLY_WITH_TAG;
     if (!$skip_mention_check && preg_match_all('/@([a-zA-Z0-9_]{3,})/', $text, $matches)) {
