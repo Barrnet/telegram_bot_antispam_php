@@ -97,11 +97,11 @@ function hasSuspiciousUnicode($text) {
     }
 	// Mix sospetto: ASCII + non-ASCII che NON siano lettere latine estese
     // Lettere latine estese (es. è, à, ù, ò, ç) sono nel range U+00C0–U+024F: escluse
-	if (
-		preg_match('/[a-zA-Z]/', $text_no_emoji) &&
-		preg_match('/[^\x00-\x7F]/', $text_no_emoji) &&
-		preg_match('/[\x{0250}-\x{1CFF}\x{1E00}-\x{FFFF}]/u', $text_no_emoji)
-	) {
+    if (
+        preg_match('/[a-zA-Z]/', $text_no_emoji) &&
+        preg_match('/[^\x00-\x7F]/', $text_no_emoji) &&
+        preg_match('/[\x{0250}-\x{1CFF}]/u', $text_no_emoji)
+    ) {
         return true;
     }
     return false;
