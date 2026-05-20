@@ -87,8 +87,10 @@ if (hasTelegramLinks($testo_analisi, $all_entities, $id_chat, $username_chat, $i
 // ==========================
 if ($array_filtro) {
     foreach ($array_filtro as $nome_filtro => $filtro) {
-        $conteggio = contaCorrispondenze($testo_analisi, explode(",", $filtro["array_trigger"]));
-        if ($conteggio >= $filtro["conteggio_trigger"]) {
+        $conteggio   = contaCorrispondenze($testo_analisi, explode(",", $filtro["array_trigger"]));
+        $moltiplicatore = max(1, strlen($testo_analisi) / FILTER_TRIGGER_MULTIPLIER);
+        $soglia_effettiva = $filtro["conteggio_trigger"] * $moltiplicatore;
+        if ($conteggio >= $soglia_effettiva) {
             handleSpam($id_chat, $id_message, $id_user, $title_chat, $nome_user, $nome_filtro, $testo_analisi, $enable_ban);
         }
     }

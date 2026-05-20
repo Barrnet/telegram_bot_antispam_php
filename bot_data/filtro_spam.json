@@ -5,22 +5,26 @@
 	},
 	"investimenti_farlocchi_en": {
 		"array_trigger" : "CEO,investing,invest,platform,invested,thanks to god,withdrawal,daily income,earn up,trading,payment,excited,link below,reward,rewards",
-		"conteggio_trigger" : 2
+		"conteggio_trigger" : 3
 	},
 	"investimenti_farlocchi_it": {
 		"array_trigger" : "CEO,investi,piattaforma,reddito giornaliero, lavoro, reddito,USD,$,guadagnare,base mensile,trading,depositi,investimento,👇,profitto,profitti,investire,bitcoin,denaro, professionalità, affidabile, criptovalute, profitti,stipendio mensile,soldi,risparmiare,lavoratori,lavoratore",
 		"conteggio_trigger" : 3
 	},
 	"lavoro_truffa_remoto_it": {
-		"array_trigger": "lavoro,remoto,online,telefono,smartphone,senza ufficio,senza computer,orari flessibili,flessibile,part-time,guadagno,guadagni,guadagnare,settimanale,settimanali,€,$,euro,dollari,non è richiesta esperienza,nessuna esperienza,principianti,cerco persone,cerco 2 persone,cerco 3 persone,selezione,team,telegram,t.me,joinchat,messaggio privato,dm,+,scrivi,contattami,invia",
-		"conteggio_trigger": 4
+		"array_trigger": "lavoro,remoto,online,telefono,smartphone,senza ufficio,senza computer,orari flessibili,flessibile,part-time,guadagno,guadagni,guadagnare,settimanale,settimanali,€,$,euro,dollari,non è richiesta esperienza,nessuna esperienza,principianti,aderito, pagamenti rapidi,iscrivetevi subito,cerco persone,cerco 2 persone,cerco 3 persone,selezione,team,messaggio privato,dm,+,scrivi,contattami,invia",
+		"conteggio_trigger": 3
 	},
 	"lavoro_truffa_remoto_en": {
-		"array_trigger": "job,remote,remotely,looking,earning,a week,online,work,working,home,phone,smartphone,laptop,computer,flexible,flexibility,part time,full time,weekly,daily,income,earn,earning,profit,money,euro,dollar,usd,€,$,no experience,no skills,entry level,beginner,training,stable payments,team,people needed,looking for people,hire,hiring,recruit,selection,telegram,t.me,joinchat,dm,private message,message me,send +,type +,click +,apply",
-		"conteggio_trigger": 4
+		"array_trigger": "job,remote,remotely,looking,earning,a week,online,work,working,home,phone,smartphone,laptop,computer,flexible,flexibility,part time,full time,weekly,daily,income,earn,earning,profit,money,euro,dollar,usd,€,$,no experience,no skills,entry level,beginner,training,stable payments,team,people needed,looking for people,hire,hiring,recruit,selection,join chat,dm,private message,message me,send +,type +,click +,apply",
+		"conteggio_trigger": 3
 	},
 	"lavoro_truffa_remoto_fr": {
-		"array_trigger": "travail,remote,télétravail,domicile,téléphone,smartphone,ordinateur,flexible,flexibilité,temps partiel,semaine,hebdomadaire,quotidien,revenu,gagner,profit,argent,euro,dollar,€,$,sans expérience,débutant,recrutement,équipe,personnes cherchées,telegram,t.me,joinchat,message privé,écrivez,contactez,envoyez,postulez",
-		"conteggio_trigger": 4
+		"array_trigger": "travail,remote,télétravail,domicile,téléphone,smartphone,ordinateur,flexible,flexibilité,temps partiel,semaine,hebdomadaire,quotidien,revenu,gagner,profit,argent,euro,dollar,€,$,sans expérience,débutant,recrutement,équipe,personnes cherchées,message privé,écrivez,contactez,envoyez,postulez",
+		"conteggio_trigger": 3
+	},
+	"isybank": {
+		"array_trigger": "isybank,conto gratuitamente,codice amico,buono amazon,inserire il codice,tutorial per ricevere,mi contatti,isyReward,offerte,maggiorenne,iscriviti",
+		"conteggio_trigger": 3
 	}
 }
