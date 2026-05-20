@@ -41,8 +41,11 @@ function contaCorrispondenze($testo, $arrayDiStringhe) {
     $testo = strtoupper($testo);
     foreach ($arrayDiStringhe as $stringa) {
         $stringa = trim(strtoupper($stringa));
-        if ($stringa !== "" && substr_count($testo, $stringa) > 0) {
-            $conteggio++;  // conta 1 indipendentemente da quante volte appare
+        if ($stringa === "") continue;
+        // \b funziona solo con caratteri ASCII, per parole con accenti usiamo (?<!\w)...(?!\w)
+        $pattern = '/(?<!\w)' . preg_quote($stringa, '/') . '(?!\w)/u';
+        if (preg_match($pattern, $testo)) {
+            $conteggio++;
         }
     }
     return $conteggio;

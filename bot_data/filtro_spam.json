@@ -1,18 +1,22 @@
 {
-	"ariagoccia":{
-		"array_trigger" : "Airdrop,distribution,token,tokens,wallet,wallets,NFT,NFTs,eligible,blockchain,claim,affiliate,eligibility,Bl\u043eckchain,block\u0441hain,n\u043ew,n\u0435twork,\u043epen,ch\u0430in,Che\u0441k,Netw\u043erk,Airdr\u043ep,distribut\u0435d,hold\u0435rs,affili\u0430te,wall\u0435ts,ch\u0435ck",
-		"conteggio_trigger" : 2
-	},
 	"investimenti_farlocchi_en": {
 		"array_trigger" : "CEO,investing,invest,platform,invested,thanks to god,withdrawal,daily income,earn up,trading,payment,excited,link below,reward,rewards",
 		"conteggio_trigger" : 3
 	},
 	"investimenti_farlocchi_it": {
-		"array_trigger" : "CEO,investi,piattaforma,reddito giornaliero, lavoro, reddito,USD,$,guadagnare,base mensile,trading,depositi,investimento,👇,profitto,profitti,investire,bitcoin,denaro, professionalità, affidabile, criptovalute, profitti,stipendio mensile,soldi,risparmiare,lavoratori,lavoratore",
+		"array_trigger" : "CEO,investi,piattaforma,reddito giornaliero, lavoro, reddito,USD,$,guadagnare,base mensile,trading,depositi,investimento,👇,profitto,profitti,investire,bitcoin,denaro, professionalità, affidabile, criptovalute, profitti,stipendio mensile,soldi,risparmiare,lavoratori,lavoratore,Crypto Mining,Deposito minimo, investitori",
 		"conteggio_trigger" : 3
 	},
+	"investimenti_farlocchi_fr": {
+		"array_trigger": "CEO,investir,investissement,investissements,rendement,gains,gagné,gagner,versement,retours,réinvestissement,trading,bitcoin,dépôt,déposé,gestion financière,faible investissement,arnaque,sans frais cachés,tout fonctionne,si bien notée,toutes mes espérances,immense merci,lien ci-dessous,cliquez ici,contactez-la,contactez-nous,ne ratez pas,adhérer maintenant,rejoindre,opportunité,à temps partiel,temps plein,quotidiennement,plateforme,€,$,usd,24 heures",
+		"conteggio_trigger": 3
+	},
+	"investimenti_farlocchi_es": {
+		"array_trigger": "CEO,invertir,inversión,capital,retirar,retiro,acreditaron,ganancias,ganar,trader,trading,forex,bitcoin,minería,opciones binarias,divisas,plataforma,muy feliz,más confiable,todo gracias,te recomiendo,altamente recomendada,muy recomendable,vi testimonio,perdido dinero,estafadores,enlace a continuación,siguiente enlace,haz clic,empieza a ganar,contacta con ella,únase,configuración mínima,€,$,usd,dólares,pago,recompensa",
+		"conteggio_trigger": 3
+	},
 	"lavoro_truffa_remoto_it": {
-		"array_trigger": "lavoro,remoto,online,telefono,smartphone,senza ufficio,senza computer,orari flessibili,flessibile,part-time,guadagno,guadagni,guadagnare,settimanale,settimanali,€,$,euro,dollari,non è richiesta esperienza,nessuna esperienza,principianti,aderito, pagamenti rapidi,iscrivetevi subito,cerco persone,cerco 2 persone,cerco 3 persone,selezione,team,messaggio privato,dm,+,scrivi,contattami,invia",
+		"array_trigger": "lavoro,remoto,online,telefono,smartphone,senza ufficio,senza computer,orari flessibili,flessibile,part-time,guadagno,guadagni,guadagnare,settimanale,settimanali,€,$,euro,eur,dollari,non è richiesta esperienza,nessuna esperienza,principianti,aderito, pagamenti rapidi,iscrivetevi subito,cerco persone,cerco 2 persone,cerco 3 persone,selezione,team,messaggio privato,dm,+,scrivi,contattami,invia",
 		"conteggio_trigger": 3
 	},
 	"lavoro_truffa_remoto_en": {
@@ -23,8 +27,20 @@
 		"array_trigger": "travail,remote,télétravail,domicile,téléphone,smartphone,ordinateur,flexible,flexibilité,temps partiel,semaine,hebdomadaire,quotidien,revenu,gagner,profit,argent,euro,dollar,€,$,sans expérience,débutant,recrutement,équipe,personnes cherchées,message privé,écrivez,contactez,envoyez,postulez",
 		"conteggio_trigger": 3
 	},
+	"lavoro_truffa_remoto_es": {
+		"array_trigger": "trabajo,remoto,online,teléfono,smartphone,ordenador,flexible,flexibilidad,media jornada,jornada completa,semanal,diario,ingresos,ganar,ganancias,beneficio,dinero,euro,dólar,usd,€,$,sin experiencia,sin habilidades,principiante,formación,pagos estables,equipo,personas necesarias,buscamos,contratar,selección,mensaje privado,escríbeme,contáctame,envía,postúlate",
+		"conteggio_trigger": 4
+	},
+	"ariagoccia":{
+		"array_trigger" : "Airdrop,distribution,token,tokens,wallet,wallets,NFT,NFTs,eligible,blockchain,claim,affiliate,eligibility,Bl\u043eckchain,block\u0441hain,n\u043ew,n\u0435twork,\u043epen,ch\u0430in,Che\u0441k,Netw\u043erk,Airdr\u043ep,distribut\u0435d,hold\u0435rs,affili\u0430te,wall\u0435ts,ch\u0435ck",
+		"conteggio_trigger" : 2
+	},
 	"isybank": {
 		"array_trigger": "isybank,conto gratuitamente,codice amico,buono amazon,inserire il codice,tutorial per ricevere,mi contatti,isyReward,offerte,maggiorenne,iscriviti",
+		"conteggio_trigger": 3
+	},
+	"documenti_falsi_it": {
+		"array_trigger": "ottieni la tua patente,in meno di 7 giorni,patente,passaporto,tessera sanitaria,permesso di soggiorno,CQC,diploma,documento,documenti,senza esame,in 7 giorni,in 5 giorni,consegna veloce,legali e approvati,ottenere facilmente,specializzati nell'ottenimento,carte clonate,contattaci in privato,mandami un messaggio,whatsapp,wa.me,👇",
 		"conteggio_trigger": 3
 	}
 }
