@@ -20,15 +20,6 @@ if (file_exists("./bot_data/filtro_spam.json")){
 }else{
 	$array_filtro = false;
 }
-
-// ==========================
-// CONTROLLO SE ABILITARE I BAN
-// ==========================
-$file_data_primo_messaggio = __DIR__ . "/group_data/$id_chat/first_message_date.txt";
-if (!file_exists($file_data_primo_messaggio)) {
-	ensureDir(__DIR__ . "/group_data/$id_chat");
-    file_put_contents($file_data_primo_messaggio, $date_message, LOCK_EX);
-}
 /* Carico whitelist globale*/
 ensureDir("./bot_data");
 $file_whitelist_globale = "./bot_data/global_whitelist.json";
@@ -44,6 +35,12 @@ if (file_exists($file_whitelist_globale)) {
 $bot_permissions = getBotPermissions($id_chat);
 //se non può cancellare messaggi, skippa tutti i controlli
 if (!$bot_permissions['can_delete']) exit;
+// Salvo la data del primo messaggio ricevuto in modo da poter controllare quando abilitare i ban. Viene salvato solamente dopo che il bot ha il permesso di cancellare i messaggi e quindi abbia una certa operatività.
+$file_data_primo_messaggio = __DIR__ . "/group_data/$id_chat/first_message_date.txt";
+if (!file_exists($file_data_primo_messaggio)) {
+	ensureDir(__DIR__ . "/group_data/$id_chat");
+    file_put_contents($file_data_primo_messaggio, $date_message, LOCK_EX);
+}
 //abilito ban dopo due settimane di attesa dal primo messaggio loggato e solo se il bot ha il permesso per bannare
 $data_primo_messaggio = (int) file_get_contents($file_data_primo_messaggio);
 if ($bot_permissions['can_ban']) {
