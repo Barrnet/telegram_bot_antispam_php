@@ -42,11 +42,9 @@ function contaCorrispondenze($testo, $arrayDiStringhe) {
     foreach ($arrayDiStringhe as $stringa) {
         $stringa = trim(strtoupper($stringa));
         if ($stringa === "") continue;
-        // \b funziona solo con caratteri ASCII, per parole con accenti usiamo (?<!\w)...(?!\w)
+        // Conta le occorrenze rispettando i boundary di parola
         $pattern = '/(?<!\w)' . preg_quote($stringa, '/') . '(?!\w)/u';
-        if (preg_match($pattern, $testo)) {
-            $conteggio++;
-        }
+        $conteggio += preg_match_all($pattern, $testo);
     }
     return $conteggio;
 }
