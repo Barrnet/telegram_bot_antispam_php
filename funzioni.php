@@ -35,17 +35,35 @@ function loadCache($path, $max_age_minutes = 60) {
     $data = json_decode(file_get_contents($path), true);
     return is_array($data) ? $data : null;
 }
+
+function isTelegramCommand(array $message) {
+    if (empty($message['entities'])) {
+        return false;
+    }
+    foreach ($message['entities'] as $entity) {
+        if (
+            $entity['type'] === 'bot_command' &&
+            $entity['offset'] === 0
+        ) {
+            return true;
+        }
+    }
+    return false;
+}
 // ================= FUNZIONI FILTRO =================
 function contaCorrispondenze($testo, $arrayDiStringhe) {
     $conteggio = 0;
     $testo = strtoupper($testo);
+
     foreach ($arrayDiStringhe as $stringa) {
         $stringa = trim(strtoupper($stringa));
         if ($stringa === "") continue;
+
         // Conta le occorrenze rispettando i boundary di parola
         $pattern = '/(?<!\w)' . preg_quote($stringa, '/') . '(?!\w)/u';
         $conteggio += preg_match_all($pattern, $testo);
     }
+
     return $conteggio;
 }
 //costruisco regex emoji
@@ -108,7 +126,8 @@ function hasSuspiciousUnicode($text) {
     return false;
 }
 // ================= FILTRO LINK TELEGRAM =================
-function hasTelegramLinks($text, $entities = [], $chat_id = false, $chat_username = false, $is_reply = false, $user_count = 0) {
+function hasTelegramLinks($text, $entities = [], $chat_id = false, $chat_username = false, $is_reply = false, $user_count = 0, $json_update_from_api = false) {
+	if (isTelegramCommand($json_update_from_api)) { return false;}
     $bot_username = strtolower(str_replace("@", "", BOT_ID));
     $whitelist_mentions = [$bot_username, "admin"];
     if ($chat_id) {
@@ -191,7 +210,7 @@ function fetchAndCacheAdmins($chat_id, $max_age_minutes = 60) {
     $cached = loadCache($cache_file, $max_age_minutes);
     if ($cached !== null) return $cached;
 
-    $response = file_get_contents(API_URL . "getChatAdministrators?chat_id=$chat_id");
+    $response = file_get_contents(API_URL . "getChatAdministrators?chat_id=$chat_id&return_bots=true");
     if (!$response) return [];
     $data = json_decode($response, true);
     if (!isset($data["ok"]) || !$data["ok"]) return [];
