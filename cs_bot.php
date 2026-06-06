@@ -6,9 +6,28 @@ include_once("funzioni.php");
 $opts    = ['http' => ['header' => 'Accept-Charset: UTF-8, *;q=0']];
 $context = stream_context_create($opts);
 $content = file_get_contents("php://input", false, $context);
+ensureDir(__DIR__ . "/logs");
 file_put_contents(__DIR__ . "/logs/log_general.txt", $content . "\n", FILE_APPEND);
 $update = json_decode($content, true);
 if (!$update) exit;
+// Risponde subito a Telegram per evitare retry
+http_response_code(200);
+header('Content-Type: application/json');
+echo '{"ok":true}';
+if (function_exists('fastcgi_finish_request')) {
+    fastcgi_finish_request();
+} else {
+    ob_end_flush();
+    flush();
+}
+// Deduplicazione
+$update_id = $update['update_id'] ?? false;
+$lock_file = __DIR__ . "/logs/last_update_id.txt";
+if ($update_id) {
+    $last_id = file_exists($lock_file) ? (int)file_get_contents($lock_file) : 0;
+    if ($update_id <= $last_id) exit;
+    file_put_contents($lock_file, $update_id, LOCK_EX);
+}
 // Variabili
 include_once("definizione_variabili.php");
 // Testo completo da analizzare (messaggio + eventuale citazione)
@@ -21,7 +40,6 @@ if (file_exists("./bot_data/filtro_spam.json")){
 	$array_filtro = false;
 }
 /* Carico whitelist globale*/
-ensureDir("./bot_data");
 $file_whitelist_globale = "./bot_data/global_whitelist.json";
 if (file_exists($file_whitelist_globale)) {
     $whitelist_globale = json_decode(file_get_contents($file_whitelist_globale), true);
@@ -82,10 +100,10 @@ if (hasTelegramLinks($testo_analisi, $all_entities, $id_chat, $username_chat, $i
 // ==========================
 // FILTRI SPAM
 // ==========================
+$moltiplicatore = max(1, strlen($testo_analisi) / FILTER_TRIGGER_MULTIPLIER);
 if ($array_filtro) {
     foreach ($array_filtro as $nome_filtro => $filtro) {
         $conteggio   = contaCorrispondenze($testo_analisi, explode(",", $filtro["array_trigger"]));
-        $moltiplicatore = max(1, strlen($testo_analisi) / FILTER_TRIGGER_MULTIPLIER);
         $soglia_effettiva = $filtro["conteggio_trigger"] * $moltiplicatore;
         if ($conteggio >= $soglia_effettiva) {
             handleSpam($id_chat, $id_message, $id_user, $title_chat, $nome_user, $nome_filtro, $testo_analisi, $enable_ban);
