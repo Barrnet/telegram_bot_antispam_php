@@ -30,6 +30,8 @@ if ($update_id) {
 }
 // Variabili
 include_once("definizione_variabili.php");
+//chiudo se l'update non riguarda un gruppo o supergruppo
+if (!in_array($tipo_chat, ["supergroup", "group"])) exit;
 // Testo completo da analizzare (messaggio + eventuale citazione)
 $testo_analisi = implode(" ", array_filter([$message, $quote_text]));
 // Carico filtri spam
