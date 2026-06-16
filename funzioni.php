@@ -17,7 +17,10 @@ function sendMessage($chatID, $text, $parse_mode = "HTML") {
     file_get_contents(API_URL . "sendMessage", false, $context);
 }
 function deleteMessages($chatID, $message_id) {
-    file_get_contents(API_URL . "deleteMessage?chat_id=$chatID&message_id=$message_id");
+    $response = file_get_contents(API_URL . "deleteMessage?chat_id=$chatID&message_id=$message_id");
+    if (!$response) return false;
+    $data = json_decode($response, true);
+    return isset($data["ok"]) && $data["ok"];
 }
 function banChatMember($chatID, $user_id, $until_date = false, $revoke_messages = false) {
     file_get_contents(API_URL . "banChatMember?chat_id=$chatID&user_id=$user_id&until_date=$until_date&revoke_messages=$revoke_messages");
@@ -302,7 +305,11 @@ function isWhitelisted($chat_id, $user_id, $threshold = MIN_MSG_FOR_WHITELIST) {
 }
 // ================= HELPER: ban + log + notifica =================
 function handleSpam($id_chat, $id_message, $id_user, $title_chat, $nome_user, $filtro, $message, $enable_ban = true) {
-    deleteMessages($id_chat, $id_message);
+    $deleted = deleteMessages($id_chat, $id_message);
+	
+    // Se il messaggio non esiste più, un moderatore ha già agito — non notificare
+    if (!$deleted) return;
+	
     if ($enable_ban) {
         $testo = "Messaggio cancellato, <a href='tg://user?id=$id_user'>$nome_user</a> bannato.\nFiltro: $filtro";
         banChatMember($id_chat, $id_user);
