@@ -311,10 +311,10 @@ function handleSpam($id_chat, $id_message, $id_user, $title_chat, $nome_user, $f
     if (!$deleted) return;
 	
     if ($enable_ban) {
-        $testo = "Messaggio cancellato, <a href='tg://user?id=$id_user'>$nome_user</a> bannato.\nFiltro: $filtro";
+        $testo = "Messaggio cancellato e utente bannato.\n Utente <a href='tg://user?id=$id_user'>$nome_user ($id_user)</a>.\nFiltro: $filtro";
         banChatMember($id_chat, $id_user);
     } else {
-        $testo = "Messaggio cancellato.\nFiltro: $filtro";
+        $testo = "Messaggio cancellato.\n Utente <a href='tg://user?id=$id_user'>$nome_user ($id_user)</a>.\nFiltro: $filtro";
     }
     logCS($id_chat, $title_chat, $id_user, $nome_user, $filtro, $message, $enable_ban);
     sendMessage($id_chat, $testo);
