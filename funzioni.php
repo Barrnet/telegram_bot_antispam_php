@@ -1,5 +1,37 @@
 <?php 
 defined('MAIN_SCRIPT') or die("richiamo diretto non permesso.");
+// ================= RICHIESTE HTTP CON RETRY =================
+
+function apiRequest($url, $post_data = null, $retries = 2, $timeout = 5) {
+    for ($tentativo = 0; $tentativo <= $retries; $tentativo++) {
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $timeout);
+        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+
+        if ($post_data !== null) {
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $post_data);
+        }
+
+        $response = curl_exec($ch);
+        $errore   = curl_error($ch);
+        curl_close($ch);
+
+        if ($response !== false) {
+            return $response;
+        }
+
+        // Log del tentativo fallito, poi breve pausa prima del retry
+        error_log("apiRequest tentativo $tentativo fallito su $url: $errore");
+        if ($tentativo < $retries) {
+            usleep(300000); // 300ms
+        }
+    }
+
+    return false;
+}
 // ================= API TELEGRAM =================
 function sendMessage($chatID, $text, $parse_mode = "HTML") {
     $payload = json_encode([
@@ -7,23 +39,18 @@ function sendMessage($chatID, $text, $parse_mode = "HTML") {
         'text'       => $text,
         'parse_mode' => $parse_mode,
     ]);
-    $context = stream_context_create([
-        'http' => [
-            'method'  => 'POST',
-            'header'  => "Content-Type: application/json\r\n",
-            'content' => $payload,
-        ],
-    ]);
-    file_get_contents(API_URL . "sendMessage", false, $context);
+    apiRequest(API_URL . "sendMessage", $payload);
 }
+
 function deleteMessages($chatID, $message_id) {
-    $response = file_get_contents(API_URL . "deleteMessage?chat_id=$chatID&message_id=$message_id");
+    $response = apiRequest(API_URL . "deleteMessage?chat_id=$chatID&message_id=$message_id");
     if (!$response) return false;
     $data = json_decode($response, true);
     return isset($data["ok"]) && $data["ok"];
 }
+
 function banChatMember($chatID, $user_id, $until_date = false, $revoke_messages = false) {
-    file_get_contents(API_URL . "banChatMember?chat_id=$chatID&user_id=$user_id&until_date=$until_date&revoke_messages=$revoke_messages");
+    apiRequest(API_URL . "banChatMember?chat_id=$chatID&user_id=$user_id&until_date=$until_date&revoke_messages=$revoke_messages");
 }
 // ================= UTILITY =================
 function ensureDir($path) {
@@ -213,7 +240,7 @@ function fetchAndCacheAdmins($chat_id, $max_age_minutes = 60) {
     $cached = loadCache($cache_file, $max_age_minutes);
     if ($cached !== null) return $cached;
 
-    $response = file_get_contents(API_URL . "getChatAdministrators?chat_id=$chat_id&return_bots=true");
+    $response = apiRequest(API_URL . "getChatAdministrators?chat_id=$chat_id&return_bots=true");
     if (!$response) return [];
     $data = json_decode($response, true);
     if (!isset($data["ok"]) || !$data["ok"]) return [];
@@ -237,7 +264,7 @@ function getBotPermissions($chat_id, $max_age_minutes = 60) {
     if ($cached !== null) return $cached;
 
     $bot_id   = explode(":", BOT_TOKEN)[0];
-    $response = file_get_contents(API_URL . "getChatMember?chat_id=$chat_id&user_id=$bot_id");
+    $response = apiRequest(API_URL . "getChatMember?chat_id=$chat_id&user_id=$bot_id");
     if (!$response) return ['can_delete' => false, 'can_ban' => false];
     $data = json_decode($response, true);
     if (!isset($data["ok"]) || !$data["ok"]) return ['can_delete' => false, 'can_ban' => false];
