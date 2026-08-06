@@ -168,7 +168,7 @@ function hasTelegramLinks($text, $entities = [], $chat_id = false, $chat_usernam
         );
     }
     // 1. Link diretti t.me / telegram.me — bloccati sempre, anche in reply
-    if (preg_match_all('/(https?:\/\/)?(t\.me|telegram\.me)\/([a-zA-Z0-9_]+)/i', $text, $matches)) {
+    if (preg_match_all('/(https?:\/\/)?(t\.me|telegram\.me)\/([a-zA-Z0-9_+-]+)/i', $text, $matches)) {
         foreach ($matches[3] as $linked_slug) {
             // Se il link punta allo stesso gruppo, lo ignora
             if ($chat_username && strtolower($linked_slug) === strtolower($chat_username)) {
@@ -191,7 +191,7 @@ function hasTelegramLinks($text, $entities = [], $chat_id = false, $chat_usernam
         if (!isset($e['type'])) continue;
         // Link cliccabile che punta a Telegram — bloccato sempre
 		if ($e['type'] === 'text_link' && isset($e['url'])) {
-			if (preg_match('/(t\.me|telegram\.me)\/([a-zA-Z0-9_]+)/i', $e['url'], $m)) {
+			if (preg_match('/(t\.me|telegram\.me)\/([a-zA-Z0-9_+-]+)/i', $e['url'], $m)) {
 				if (!$chat_username || strtolower($m[2]) !== strtolower($chat_username)) {
 					return true;
 				}
