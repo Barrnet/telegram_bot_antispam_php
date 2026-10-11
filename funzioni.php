@@ -155,6 +155,16 @@ function hasSuspiciousUnicode($text) {
     }
     return false;
 }
+// ================= FILTRI SU TIPO DI MESSAGGIO =================
+// Ritorna true se il messaggio è l'inoltro di una storia (campo "story" dell'API Telegram)
+function isForwardedStory(array $msg) {
+    return isset($msg['story']);
+}
+// Ritorna true se il messaggio è la condivisione di un contatto telefonico (campo "contact")
+function isContactShare(array $msg) {
+    return isset($msg['contact']);
+}
+
 // ================= FILTRO LINK TELEGRAM =================
 function hasTelegramLinks($text, $entities = [], $chat_id = false, $chat_username = false, $is_reply = false, $user_count = 0, $json_update_from_api = false) {
 	if (isTelegramCommand($json_update_from_api)) { return false;}

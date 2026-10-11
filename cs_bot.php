@@ -7,7 +7,6 @@ $opts    = ['http' => ['header' => 'Accept-Charset: UTF-8, *;q=0']];
 $context = stream_context_create($opts);
 $content = file_get_contents("php://input", false, $context);
 ensureDir(__DIR__ . "/logs");
-file_put_contents(__DIR__ . "/logs/log_general.txt", $content . "\n", FILE_APPEND);
 $update = json_decode($content, true);
 if (!$update) exit;
 // Risponde subito a Telegram per evitare retry
@@ -32,6 +31,9 @@ if ($update_id) {
 include_once("definizione_variabili.php");
 //chiudo se l'update non riguarda un gruppo o supergruppo
 if (!in_array($tipo_chat, ["supergroup", "group"])) exit;
+//salvo log chat divisa per gruppi
+ensureDir(__DIR__ . "/logs/$id_chat/");
+file_put_contents(__DIR__ . "/logs/$id_chat/log_chat.txt", $content . "\n", FILE_APPEND);
 // Testo completo da analizzare (messaggio + eventuale citazione)
 $testo_analisi = implode(" ", array_filter([$message, $quote_text]));
 // Carico filtri spam
@@ -79,6 +81,19 @@ if ($message && strlen($message) > 3) {
 }
 // Utente fidato → nessun controllo necessario
 if ($user_count >= MIN_MSG_FOR_WHITELIST) exit;
+
+// ==========================
+// STORIA INOLTRATA / CONTATTO TELEFONICO
+// (messaggi senza testo, quindi vanno controllati prima dell'uscita sui messaggi vuoti;
+// gli utenti fidati sono già usciti sopra)
+// ==========================
+if (isForwardedStory($update["message"])) {
+    handleSpam($id_chat, $id_message, $id_user, $title_chat, $nome_user, "storia_inoltrata", "[storia inoltrata]", $enable_ban);
+}
+if (isContactShare($update["message"])) {
+    handleSpam($id_chat, $id_message, $id_user, $title_chat, $nome_user, "contatto_telefonico", "[contatto telefonico]", $enable_ban);
+}
+
 // Messaggio vuoto → nessun filtro da applicare
 if (!$message) exit;
 // ==========================

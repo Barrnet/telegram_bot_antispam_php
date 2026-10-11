@@ -16,11 +16,11 @@
 		"conteggio_trigger": 3
 	},
 	"lavoro_truffa_remoto_it": {
-		"array_trigger": "lavoro,remoto,online,telefono,smartphone,senza ufficio,senza computer,orari flessibili,flessibile,part-time,guadagno,guadagni,guadagnare,settimanale,settimanali,€,$,euro,eur,dollari,non è richiesta esperienza,nessuna esperienza,principianti,aderito, pagamenti rapidi,iscrivetevi subito,cerco persone,cerco 2 persone,cerco 3 persone,selezione,team,messaggio privato,dm,+,scrivi,contattami,invia",
+		"array_trigger": "lavoro,remoto,online,telefono,smartphone,senza ufficio,senza computer,orari flessibili,flessibile,part-time,guadagno,guadagni,guadagnare,settimanale,settimanali,€,$,euro,eur,dollari,non è richiesta esperienza,nessuna esperienza,principianti,aderito, pagamenti rapidi,iscrivetevi subito,cerco persone,cerco 2 persone,cerco 3 persone,selezione,team,messaggio privato,dm,scrivi,contattami,invia",
 		"conteggio_trigger": 3
 	},
 	"lavoro_truffa_remoto_en": {
-		"array_trigger": "job,remote,remotely,looking,earning,a week,online,work,working,home,phone,smartphone,laptop,computer,flexible,flexibility,part time,full time,weekly,daily,income,earn,earning,profit,money,euro,dollar,usd,€,$,no experience,no skills,entry level,beginner,training,stable payments,team,people needed,looking for people,hire,hiring,recruit,selection,join chat,dm,private message,message me,send +,type +,click +,apply",
+		"array_trigger": "job,remote,remotely,looking,earning,a week,online,work,working,home,phone,smartphone,laptop,computer,flexible,flexibility,part time,full time,weekly,daily,income,earn,earning,profit,money,euro,dollar,usd,€,$,no experience,no skills,entry level,beginner,training,stable payments,team,people needed,looking for people,hire,hiring,recruit,selection,join chat,dm,private message,message me,send +,type +,click +,apply,Telemarketing,reliable",
 		"conteggio_trigger": 3
 	},
 	"lavoro_truffa_remoto_fr": {
