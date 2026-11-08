@@ -29,13 +29,38 @@ if ($update_id) {
 }
 // Variabili
 include_once("definizione_variabili.php");
+// Pressione di un pulsante inline (verifica nuovi utenti): non ha "message" al primo livello, va gestita prima del controllo sul tipo di chat
+if (isset($update["callback_query"])) {
+    gestisciCallbackVerifica($update["callback_query"]);
+    exit;
+}
 //chiudo se l'update non riguarda un gruppo o supergruppo
 if (!in_array($tipo_chat, ["supergroup", "group"])) exit;
 //salvo log chat divisa per gruppi
 ensureDir(__DIR__ . "/logs/$id_chat/");
 file_put_contents(__DIR__ . "/logs/$id_chat/log_chat.txt", $content . "\n", FILE_APPEND);
+// Nuovi membri: messaggio di servizio senza testo, salvo id e timestamp di ingresso.
+// Va prima di whitelist e controllo permessi, che altrimenti farebbero uscire lo script.
+if (!empty($new_chat_members)) {
+    saveNewMembers($id_chat, $new_chat_members, $date_message ?: time());
+    // Gruppi con verifica abilitata: restrizione + messaggio di benvenuto (serve il permesso di restringere)
+    $ids_ingresso = implode(",", array_column($new_chat_members, 'id'));
+    if (!isVerificaAttiva($id_chat)) {
+        logVerifica($id_chat, "ingresso [$ids_ingresso]: gruppo $id_chat NON presente in GRUPPI_VERIFICA, nulla da fare");
+    } else {
+        $bot_permissions = getBotPermissions($id_chat);
+        logVerifica($id_chat, "ingresso [$ids_ingresso]: gruppo abilitato, permessi bot (cache): "
+            . json_encode($bot_permissions));
+        if ($bot_permissions['can_ban']) {
+            avviaVerificaNuoviMembri($id_chat, $new_chat_members);
+        } else {
+            logVerifica($id_chat, "il bot non ha can_restrict_members (o la cache è vecchia: cancella group_data/$id_chat/bot_permissions.json)");
+        }
+    }
+    exit;
+}
 // Testo completo da analizzare (messaggio + eventuale citazione)
-$testo_analisi = implode(" ", array_filter([$message, $quote_text]));
+$testo_analisi = implode(" ", array_filter([$message, $quote_text, $testo_rich, $testo_bottoni]));
 // Carico filtri spam
 ensureDir("./bot_data");
 if (file_exists("./bot_data/filtro_spam.json")){
@@ -95,7 +120,7 @@ if (isContactShare($update["message"])) {
 }
 
 // Messaggio vuoto → nessun filtro da applicare
-if (!$message) exit;
+if ($testo_analisi === "") exit;
 // ==========================
 // UNICODE SOSPETTO
 // ==========================

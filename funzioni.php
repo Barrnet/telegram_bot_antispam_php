@@ -38,8 +38,9 @@ function sendMessage($chatID, $text, $parse_mode = "HTML") {
         'chat_id'    => $chatID,
         'text'       => $text,
         'parse_mode' => $parse_mode,
+		'disable_notification' => true,
     ]);
-    apiRequest(API_URL . "sendMessage", $payload);
+    return apiRequest(API_URL . "sendMessage", $payload);
 }
 
 function deleteMessages($chatID, $message_id) {
@@ -165,6 +166,46 @@ function isContactShare(array $msg) {
     return isset($msg['contact']);
 }
 
+// ================= TESTO NASCOSTO NEI MESSAGGI =================
+// Estrae in modo ricorsivo il testo da un campo "rich_message" (blocchi annidati con stringhe e menzioni).
+// La struttura è nota solo da esempi reali, quindi la lettura è tollerante: si prendono le stringhe nelle
+// liste e sotto le chiavi text/title/url, si ignorano type/size/username. Profondità limitata.
+function estraiTestoRicco($nodo, $profondita = 0) {
+    if ($profondita > 8) return "";
+    if (is_string($nodo)) return $nodo;
+    if (!is_array($nodo)) return "";
+    $parti = [];
+    // menzione senza testo: uso lo username con la @
+    if (($nodo['type'] ?? '') === 'mention' && empty($nodo['text']) && !empty($nodo['username'])) {
+        $parti[] = '@' . ltrim((string)$nodo['username'], '@');
+    }
+    foreach ($nodo as $chiave => $valore) {
+        if (is_int($chiave) || in_array($chiave, ['text', 'title', 'url', 'blocks', 'items', 'children'], true)) {
+            $t = estraiTestoRicco($valore, $profondita + 1);
+            if ($t !== "") $parti[] = $t;
+        }
+    }
+    return trim(implode(" ", $parti));
+}
+// Estrae testi e URL dei bottoni inline (reply_markup.inline_keyboard) per poterli analizzare come testo.
+function estraiTestoBottoni($reply_markup) {
+    if (!is_array($reply_markup) || empty($reply_markup['inline_keyboard']) || !is_array($reply_markup['inline_keyboard'])) {
+        return "";
+    }
+    $parti = [];
+    foreach ($reply_markup['inline_keyboard'] as $riga) {
+        if (!is_array($riga)) continue;
+        foreach ($riga as $bottone) {
+            if (!is_array($bottone)) continue;
+            foreach ([$bottone['text'] ?? null, $bottone['url'] ?? null,
+                      $bottone['login_url']['url'] ?? null, $bottone['web_app']['url'] ?? null] as $v) {
+                if (is_string($v) && $v !== "") $parti[] = $v;
+            }
+        }
+    }
+    return implode(" ", $parti);
+}
+
 // ================= FILTRO LINK TELEGRAM =================
 function hasTelegramLinks($text, $entities = [], $chat_id = false, $chat_username = false, $is_reply = false, $user_count = 0, $json_update_from_api = false) {
 	if (isTelegramCommand($json_update_from_api)) { return false;}
@@ -266,6 +307,158 @@ function fetchAndCacheAdmins($chat_id, $max_age_minutes = 60) {
     ensureDir(__DIR__ . "/group_data/$chat_id");
     file_put_contents($cache_file, json_encode($usernames, JSON_PRETTY_PRINT), LOCK_EX);
     return $usernames;
+}
+// ================= NUOVI MEMBRI DEL GRUPPO =================
+function getNewMembersFile($chat_id) {
+    return __DIR__ . "/group_data/$chat_id/new_members.json";
+}
+function loadNewMembers($chat_id) {
+    $file = getNewMembersFile($chat_id);
+    if (!file_exists($file)) return [];
+    $data = json_decode(file_get_contents($file), true);
+    return is_array($data) ? $data : [];
+}
+// Salva id => timestamp di ingresso per ogni utente in new_chat_members.
+// Lettura+scrittura sotto un unico lock per evitare race tra update concorrenti.
+// Se un utente rientra, il timestamp viene sovrascritto con l'ultimo ingresso.
+function saveNewMembers($chat_id, array $members, $timestamp) {
+    $ids = [];
+    foreach ($members as $m) {
+        if (!empty($m['id']) && empty($m['is_bot'])) $ids[] = (int)$m['id'];
+    }
+    if (!$ids) return;
+
+    ensureDir(__DIR__ . "/group_data/$chat_id");
+    $fp = fopen(getNewMembersFile($chat_id), 'c+');
+    if (!$fp) return;
+    if (flock($fp, LOCK_EX)) {
+        $raw  = stream_get_contents($fp);
+        $data = json_decode($raw, true);
+        if (!is_array($data)) $data = [];
+        foreach ($ids as $id) {
+            $data[$id] = (int)$timestamp;
+        }
+        ftruncate($fp, 0);
+        rewind($fp);
+        fwrite($fp, json_encode($data, JSON_PRETTY_PRINT));
+        fflush($fp);
+        flock($fp, LOCK_UN);
+    }
+    fclose($fp);
+}
+// Rimuove un utente dal file dei nuovi membri. Ritorna true se era presente.
+function removeNewMember($chat_id, $user_id) {
+    $file = getNewMembersFile($chat_id);
+    if (!file_exists($file)) return false;
+    $fp = fopen($file, 'c+');
+    if (!$fp) return false;
+    $trovato = false;
+    if (flock($fp, LOCK_EX)) {
+        $data = json_decode(stream_get_contents($fp), true);
+        if (is_array($data) && isset($data[$user_id])) {
+            unset($data[$user_id]);
+            $trovato = true;
+            ftruncate($fp, 0);
+            rewind($fp);
+            fwrite($fp, json_encode($data, JSON_PRETTY_PRINT));
+            fflush($fp);
+        }
+        flock($fp, LOCK_UN);
+    }
+    fclose($fp);
+    return $trovato;
+}
+// ================= VERIFICA NUOVI UTENTI =================
+function isVerificaAttiva($chat_id) {
+    return in_array((int)$chat_id, array_map('intval', GRUPPI_VERIFICA), true);
+}
+// Log di diagnosi della verifica: logs/<chat>/verifica_debug.txt (non contiene token)
+function logVerifica($chat_id, $testo) {
+    $dir = __DIR__ . "/logs/$chat_id";
+    ensureDir($dir);
+    file_put_contents("$dir/verifica_debug.txt", date('d/m/Y H:i:s') . " " . $testo . "\n", FILE_APPEND | LOCK_EX);
+}
+// Chiama restrictChatMember con i permessi indicati. Ritorna true se Telegram risponde ok.
+function setMemberPermissions($chat_id, $user_id, array $permissions) {
+    $payload = json_encode([
+        'chat_id'                         => $chat_id,
+        'user_id'                         => $user_id,
+        'permissions'                     => $permissions,
+        'use_independent_chat_permissions' => true,
+    ]);
+    $response = apiRequest(API_URL . "restrictChatMember", $payload);
+    if (!$response) {
+        logVerifica($chat_id, "restrictChatMember user $user_id: nessuna risposta da Telegram");
+        return false;
+    }
+    $data = json_decode($response, true);
+    if (empty($data["ok"])) {
+        error_log("restrictChatMember fallita ($chat_id / $user_id): " . $response);
+        logVerifica($chat_id, "restrictChatMember user $user_id FALLITA: " . $response);
+        return false;
+    }
+    logVerifica($chat_id, "restrictChatMember user $user_id ok");
+    return true;
+}
+function restrictMember($chat_id, $user_id) {
+    $nomi = ['can_send_messages', 'can_send_audios', 'can_send_documents', 'can_send_photos',
+             'can_send_videos', 'can_send_video_notes', 'can_send_voice_notes', 'can_send_polls',
+             'can_send_other_messages', 'can_add_web_page_previews', 'can_change_info',
+             'can_invite_users', 'can_pin_messages', 'can_manage_topics'];
+    return setMemberPermissions($chat_id, $user_id, array_fill_keys($nomi, false));
+}
+// Ripristina i permessi di default del gruppo (non "tutto permesso", per rispettare le impostazioni del gruppo)
+function unrestrictMember($chat_id, $user_id) {
+    $permissions = null;
+    $response = apiRequest(API_URL . "getChat?chat_id=$chat_id");
+    if ($response) {
+        $data = json_decode($response, true);
+        if (!empty($data["ok"]) && !empty($data["result"]["permissions"])) {
+            $permissions = $data["result"]["permissions"];
+        }
+    }
+    if (!$permissions) {
+        $permissions = [
+            'can_send_messages' => true, 'can_send_audios' => true, 'can_send_documents' => true,
+            'can_send_photos' => true, 'can_send_videos' => true, 'can_send_video_notes' => true,
+            'can_send_voice_notes' => true, 'can_send_polls' => true, 'can_send_other_messages' => true,
+            'can_add_web_page_previews' => true, 'can_invite_users' => true,
+        ];
+    }
+    return setMemberPermissions($chat_id, $user_id, $permissions);
+}
+// Link alla verifica: Mini App aperto direttamente in Telegram se MINIAPP_NOME è impostato, altrimenti link alla pagina web
+function linkVerifica($chat_id) {
+    if (MINIAPP_NOME !== '') {
+        return "https://t.me/" . str_replace("@", "", BOT_ID) . "/" . MINIAPP_NOME . "?startapp=" . $chat_id;
+    }
+    return VERIFICA_URL . "?idgruppo=" . $chat_id;
+}
+// Restringe i nuovi utenti e manda un unico messaggio di benvenuto col link alla verifica
+function avviaVerificaNuoviMembri($chat_id, array $members) {
+    $menzioni = [];
+    foreach ($members as $m) {
+        if (empty($m['id']) || !empty($m['is_bot'])) {
+            logVerifica($chat_id, "membro saltato (bot o id mancante): " . ($m['id'] ?? '?'));
+            continue;
+        }
+        if (!restrictMember($chat_id, $m['id'])) continue; // motivo già loggato in setMemberPermissions
+        $nome = htmlspecialchars($m['first_name'] ?? 'utente', ENT_QUOTES);
+        $menzioni[] = "<a href='tg://user?id={$m['id']}'>$nome</a>";
+    }
+    if (!$menzioni) {
+        logVerifica($chat_id, "nessun utente ristretto: messaggio di benvenuto non inviato");
+        return;
+    }
+    $url   = linkVerifica($chat_id);
+    $testo = "Benvenuto " . implode(", ", $menzioni) . "!\n"
+           . "Per poter scrivere in questo gruppo completa la verifica anti-spam: "
+           . "<a href='$url'>clicca qui</a>.";
+    $risposta = sendMessage($chat_id, $testo);
+    $esito    = $risposta ? json_decode($risposta, true) : null;
+    logVerifica($chat_id, empty($esito['ok'])
+        ? "sendMessage FALLITO: " . ($risposta ?: 'nessuna risposta')
+        : "messaggio di benvenuto inviato");
 }
 // ================= PERMESSI BOT =================
 function getBotPermissions($chat_id, $max_age_minutes = 60) {

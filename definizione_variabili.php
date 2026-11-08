@@ -22,6 +22,9 @@ if (isset($update["message"]["text"])) {
 }
 $message_entities = $update["message"]["entities"] ?? [];
 $caption_entities = $update["message"]["caption_entities"] ?? [];
+/* TESTO AGGIUNTIVO solo per l'analisi dei filtri (non conta per la whitelist): rich_message e bottoni inline */
+$testo_rich    = isset($update["message"]["rich_message"]) ? estraiTestoRicco($update["message"]["rich_message"]) : "";
+$testo_bottoni = estraiTestoBottoni($update["message"]["reply_markup"] ?? []);
 $id_message = $update["message"]["message_id"] ?? false;
 $date_message = $update["message"]["date"] ?? false;
 /* FORWARD */
@@ -29,6 +32,8 @@ $is_forwarded = isset($update["message"]["forward_origin"])
              || isset($update["message"]["forward_from"])
              || isset($update["message"]["forward_from_chat"])
              || isset($update["message"]["forward_sender_name"]);
+/* NUOVI MEMBRI (messaggio di servizio) */
+$new_chat_members = $update["message"]["new_chat_members"] ?? [];
 /* QUOTE */
 $quote_text = $update["message"]["quote"]["text"] ?? false;
 /* REPLY */
