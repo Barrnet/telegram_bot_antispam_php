@@ -29,11 +29,6 @@ if ($update_id) {
 }
 // Variabili
 include_once("definizione_variabili.php");
-// Pressione di un pulsante inline (verifica nuovi utenti): non ha "message" al primo livello, va gestita prima del controllo sul tipo di chat
-if (isset($update["callback_query"])) {
-    gestisciCallbackVerifica($update["callback_query"]);
-    exit;
-}
 //chiudo se l'update non riguarda un gruppo o supergruppo
 if (!in_array($tipo_chat, ["supergroup", "group"])) exit;
 //salvo log chat divisa per gruppi

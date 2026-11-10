@@ -434,21 +434,42 @@ function linkVerifica($chat_id) {
     }
     return VERIFICA_URL . "?idgruppo=" . $chat_id;
 }
-// Restringe i nuovi utenti e manda un unico messaggio di benvenuto col link alla verifica
+// Messaggio di benvenuto unico per gruppo: lo stato (id dell'ultimo messaggio) sta in group_data/<chat>/welcome_message.json
+function getWelcomeFile($chat_id) {
+    return __DIR__ . "/group_data/$chat_id/welcome_message.json";
+}
+function loadWelcomeState($chat_id) {
+    $file = getWelcomeFile($chat_id);
+    if (!file_exists($file)) return ['message_id' => 0];
+    $d = json_decode(file_get_contents($file), true);
+    if (!is_array($d)) return ['message_id' => 0];
+    return ['message_id' => (int)($d['message_id'] ?? 0)];
+}
+// Restringe i nuovi utenti e manda un unico messaggio di benvenuto col link alla verifica.
+// Il messaggio precedente del gruppo viene cancellato; il nuovo cita solo gli utenti appena entrati.
 function avviaVerificaNuoviMembri($chat_id, array $members) {
-    $menzioni = [];
+    $nuovi = []; // id => nome
     foreach ($members as $m) {
         if (empty($m['id']) || !empty($m['is_bot'])) {
             logVerifica($chat_id, "membro saltato (bot o id mancante): " . ($m['id'] ?? '?'));
             continue;
         }
         if (!restrictMember($chat_id, $m['id'])) continue; // motivo già loggato in setMemberPermissions
-        $nome = htmlspecialchars($m['first_name'] ?? 'utente', ENT_QUOTES);
-        $menzioni[] = "<a href='tg://user?id={$m['id']}'>$nome</a>";
+        $nuovi[(int)$m['id']] = (string)($m['first_name'] ?? 'utente');
     }
-    if (!$menzioni) {
+    if (!$nuovi) {
         logVerifica($chat_id, "nessun utente ristretto: messaggio di benvenuto non inviato");
         return;
+    }
+    ensureDir(__DIR__ . "/group_data/$chat_id");
+    // Lock per gruppo: ingressi ravvicinati non devono lasciare due messaggi o perderne il riferimento
+    $lock = fopen(__DIR__ . "/group_data/$chat_id/welcome.lock", 'c');
+    if ($lock) flock($lock, LOCK_EX);
+
+    $stato    = loadWelcomeState($chat_id);
+    $menzioni = [];
+    foreach ($nuovi as $id => $nome) {
+        $menzioni[] = "<a href='tg://user?id=$id'>" . htmlspecialchars($nome, ENT_QUOTES) . "</a>";
     }
     $url   = linkVerifica($chat_id);
     $testo = "Benvenuto " . implode(", ", $menzioni) . "!\n"
@@ -456,9 +477,45 @@ function avviaVerificaNuoviMembri($chat_id, array $members) {
            . "<a href='$url'>clicca qui</a>.";
     $risposta = sendMessage($chat_id, $testo);
     $esito    = $risposta ? json_decode($risposta, true) : null;
-    logVerifica($chat_id, empty($esito['ok'])
-        ? "sendMessage FALLITO: " . ($risposta ?: 'nessuna risposta')
-        : "messaggio di benvenuto inviato");
+    $nuovo_id = (int)($esito['result']['message_id'] ?? 0);
+
+    if (empty($esito['ok']) || !$nuovo_id) {
+        // Invio fallito: lascio intatti vecchio messaggio e stato
+        logVerifica($chat_id, "sendMessage FALLITO: " . ($risposta ?: 'nessuna risposta'));
+    } else {
+        logVerifica($chat_id, "messaggio di benvenuto inviato (id $nuovo_id)");
+        if ($stato['message_id']) {
+            $ok = deleteMessages($chat_id, $stato['message_id']);
+            logVerifica($chat_id, "cancellazione benvenuto precedente {$stato['message_id']}: " . ($ok ? "ok" : "non riuscita (già cancellato o più vecchio di 48h)"));
+        }
+        file_put_contents(getWelcomeFile($chat_id),
+            json_encode(['message_id' => $nuovo_id], JSON_PRETTY_PRINT), LOCK_EX);
+    }
+    if ($lock) { flock($lock, LOCK_UN); fclose($lock); }
+}
+// Stato di un utente nel gruppo: ritorna il "result" di getChatMember, oppure null se la chiamata fallisce
+function getMemberInfo($chat_id, $user_id) {
+    $response = apiRequest(API_URL . "getChatMember?chat_id=$chat_id&user_id=$user_id");
+    $data = $response ? json_decode($response, true) : null;
+    return !empty($data["ok"]) ? $data["result"] : null;
+}
+// Rimuove l'utente dal gruppo senza bannarlo: ban + subito unban, così può rientrare con il link di invito.
+// Se l'unban fallisce lo ritenta, perché altrimenti l'utente resterebbe bannato. Ritorna true se la rimozione è completa.
+function kickMember($chat_id, $user_id) {
+    $risposta = apiRequest(API_URL . "banChatMember", json_encode(['chat_id' => $chat_id, 'user_id' => $user_id]));
+    $data = $risposta ? json_decode($risposta, true) : null;
+    if (empty($data["ok"])) {
+        logVerifica($chat_id, "banChatMember (rimozione) user $user_id FALLITO: " . ($risposta ?: 'nessuna risposta'));
+        return false;
+    }
+    for ($i = 0; $i < 3; $i++) {
+        $risposta = apiRequest(API_URL . "unbanChatMember", json_encode(['chat_id' => $chat_id, 'user_id' => $user_id, 'only_if_banned' => true]));
+        $data = $risposta ? json_decode($risposta, true) : null;
+        if (!empty($data["ok"])) return true;
+        usleep(500000);
+    }
+    logVerifica($chat_id, "ATTENZIONE: user $user_id rimosso ma unbanChatMember FALLITO, resta bannato: " . ($risposta ?: 'nessuna risposta'));
+    return true; // l'utente è stato rimosso comunque; non va riprovata la rimozione
 }
 // ================= PERMESSI BOT =================
 function getBotPermissions($chat_id, $max_age_minutes = 60) {
