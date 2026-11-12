@@ -29,6 +29,19 @@ if ($update_id) {
 }
 // Variabili
 include_once("definizione_variabili.php");
+// Update chat_member (serve allowed_updates nel setWebhook): arriva anche nei gruppi grandi, dove Telegram non invia
+// i messaggi di servizio di ingresso. Gli ingressi vanno gestiti come new_chat_members.
+if (isset($update["chat_member"])) {
+    $cm = $update["chat_member"];
+    $cm_chat = $cm["chat"]["id"] ?? false;
+    if ($cm_chat && in_array($cm["chat"]["type"] ?? '', ["supergroup", "group"]) && isIngressoChatMember($cm)) {
+        ensureDir(__DIR__ . "/logs/$cm_chat/");
+        file_put_contents(__DIR__ . "/logs/$cm_chat/log_chat.txt", $content . "\n", FILE_APPEND);
+        $utente = $cm["new_chat_member"]["user"] ?? [];
+        gestisciIngressoMembri($cm_chat, [$utente], $cm["date"] ?? time());
+    }
+    exit;
+}
 //chiudo se l'update non riguarda un gruppo o supergruppo
 if (!in_array($tipo_chat, ["supergroup", "group"])) exit;
 //salvo log chat divisa per gruppi
@@ -37,26 +50,7 @@ file_put_contents(__DIR__ . "/logs/$id_chat/log_chat.txt", $content . "\n", FILE
 // Nuovi membri: messaggio di servizio senza testo, salvo id e timestamp di ingresso.
 // Va prima di whitelist e controllo permessi, che altrimenti farebbero uscire lo script.
 if (!empty($new_chat_members)) {
-    saveNewMembers($id_chat, $new_chat_members, $date_message ?: time());
-    // Gruppi con verifica abilitata: restrizione + messaggio di benvenuto (serve il permesso di restringere)
-    $ids_ingresso = implode(",", array_column($new_chat_members, 'id'));
-    if (!isVerificaAttiva($id_chat)) {
-        logVerifica($id_chat, "ingresso [$ids_ingresso]: gruppo $id_chat NON presente in GRUPPI_VERIFICA, nulla da fare");
-    } else {
-        $bot_permissions = getBotPermissions($id_chat);
-        logVerifica($id_chat, "ingresso [$ids_ingresso]: gruppo abilitato, permessi bot (cache): "
-            . json_encode($bot_permissions));
-        if ($bot_permissions['can_ban']) {
-            $benvenuto_inviato = avviaVerificaNuoviMembri($id_chat, $new_chat_members);
-            // Cancello il messaggio di servizio "X è entrato" solo dopo aver inviato il benvenuto (serve il permesso di cancellare)
-            if ($benvenuto_inviato && !empty($bot_permissions['can_delete']) && $id_message) {
-                $ok = deleteMessages($id_chat, $id_message);
-                logVerifica($id_chat, "cancellazione messaggio di servizio ingresso $id_message: " . ($ok ? "ok" : "non riuscita"));
-            }
-        } else {
-            logVerifica($id_chat, "il bot non ha can_restrict_members (o la cache è vecchia: cancella group_data/$id_chat/bot_permissions.json)");
-        }
-    }
+    gestisciIngressoMembri($id_chat, $new_chat_members, $date_message ?: time(), $id_message);
     exit;
 }
 // Testo completo da analizzare (messaggio + eventuale citazione)

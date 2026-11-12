@@ -318,33 +318,42 @@ function loadNewMembers($chat_id) {
     $data = json_decode(file_get_contents($file), true);
     return is_array($data) ? $data : [];
 }
-// Salva id => timestamp di ingresso per ogni utente in new_chat_members.
+// Salva id => timestamp di ingresso per ogni utente in new_chat_members / chat_member.
 // Lettura+scrittura sotto un unico lock per evitare race tra update concorrenti.
 // Se un utente rientra, il timestamp viene sovrascritto con l'ultimo ingresso.
-function saveNewMembers($chat_id, array $members, $timestamp) {
+// Con $finestra > 0 salta chi risulta già registrato negli ultimi $finestra secondi: lo stesso ingresso può arrivare
+// sia come messaggio di servizio sia come update chat_member e va gestito una volta sola.
+// Ritorna gli id effettivamente registrati.
+function saveNewMembers($chat_id, array $members, $timestamp, $finestra = 0) {
     $ids = [];
     foreach ($members as $m) {
         if (!empty($m['id']) && empty($m['is_bot'])) $ids[] = (int)$m['id'];
     }
-    if (!$ids) return;
+    if (!$ids) return [];
 
     ensureDir(__DIR__ . "/group_data/$chat_id");
+    $registrati = [];
     $fp = fopen(getNewMembersFile($chat_id), 'c+');
-    if (!$fp) return;
+    if (!$fp) return [];
     if (flock($fp, LOCK_EX)) {
         $raw  = stream_get_contents($fp);
         $data = json_decode($raw, true);
         if (!is_array($data)) $data = [];
         foreach ($ids as $id) {
+            if ($finestra > 0 && isset($data[$id]) && abs(time() - (int)$data[$id]) < $finestra) continue;
             $data[$id] = (int)$timestamp;
+            $registrati[] = $id;
         }
-        ftruncate($fp, 0);
-        rewind($fp);
-        fwrite($fp, json_encode($data, JSON_PRETTY_PRINT));
-        fflush($fp);
+        if ($registrati) {
+            ftruncate($fp, 0);
+            rewind($fp);
+            fwrite($fp, json_encode($data, JSON_PRETTY_PRINT));
+            fflush($fp);
+        }
         flock($fp, LOCK_UN);
     }
     fclose($fp);
+    return $registrati;
 }
 // Rimuove un utente dal file dei nuovi membri. Ritorna true se era presente.
 function removeNewMember($chat_id, $user_id) {
@@ -518,6 +527,50 @@ function kickMember($chat_id, $user_id) {
     }
     logVerifica($chat_id, "ATTENZIONE: user $user_id rimosso ma unbanChatMember FALLITO, resta bannato: " . ($risposta ?: 'nessuna risposta'));
     return true; // l'utente è stato rimosso comunque; non va riprovata la rimozione
+}
+// Gestione di un ingresso, da qualunque update arrivi (messaggio di servizio new_chat_members o update chat_member):
+// registra i membri, e nei gruppi con verifica abilitata li restringe e invia il benvenuto.
+// $id_message = id del messaggio di servizio da cancellare dopo il benvenuto (false per chat_member, che non ha messaggio).
+function gestisciIngressoMembri($chat_id, array $members, $timestamp, $id_message = false) {
+    $registrati = saveNewMembers($chat_id, $members, $timestamp, 120);
+    if (!$registrati) {
+        logVerifica($chat_id, "ingresso già gestito da un altro update (o solo bot): nulla da fare");
+        // Il benvenuto l'ha già mandato l'altro update: se questo è il messaggio di servizio, lo cancello comunque
+        if ($id_message && isVerificaAttiva($chat_id) && !empty(getBotPermissions($chat_id)['can_delete'])) {
+            $ok = deleteMessages($chat_id, $id_message);
+            logVerifica($chat_id, "cancellazione messaggio di servizio ingresso $id_message: " . ($ok ? "ok" : "non riuscita"));
+        }
+        return;
+    }
+    $members = array_values(array_filter($members, fn($m) => in_array((int)($m['id'] ?? 0), $registrati, true)));
+    $ids_ingresso = implode(",", $registrati);
+    if (!isVerificaAttiva($chat_id)) {
+        logVerifica($chat_id, "ingresso [$ids_ingresso]: gruppo $chat_id NON presente in GRUPPI_VERIFICA, nulla da fare");
+        return;
+    }
+    $bot_permissions = getBotPermissions($chat_id);
+    logVerifica($chat_id, "ingresso [$ids_ingresso]: gruppo abilitato, permessi bot (cache): " . json_encode($bot_permissions));
+    if (empty($bot_permissions['can_ban'])) {
+        logVerifica($chat_id, "il bot non ha can_restrict_members (o la cache è vecchia: cancella group_data/$chat_id/bot_permissions.json)");
+        return;
+    }
+    $benvenuto_inviato = avviaVerificaNuoviMembri($chat_id, $members);
+    // Cancello il messaggio di servizio "X è entrato" solo dopo aver inviato il benvenuto (serve il permesso di cancellare)
+    if ($benvenuto_inviato && $id_message && !empty($bot_permissions['can_delete'])) {
+        $ok = deleteMessages($chat_id, $id_message);
+        logVerifica($chat_id, "cancellazione messaggio di servizio ingresso $id_message: " . ($ok ? "ok" : "non riuscita"));
+    }
+}
+// Un update chat_member è un ingresso se l'utente prima non era nel gruppo e ora lo è.
+// (Le restrizioni/sblocchi fatti dal bot sono member<->restricted e non vengono scambiati per ingressi.)
+function isIngressoChatMember(array $cm) {
+    $vecchio = $cm['old_chat_member'] ?? [];
+    $nuovo   = $cm['new_chat_member'] ?? [];
+    $era_fuori = in_array($vecchio['status'] ?? '', ['left', 'kicked'], true)
+              || (($vecchio['status'] ?? '') === 'restricted' && empty($vecchio['is_member']));
+    $ora_dentro = ($nuovo['status'] ?? '') === 'member'
+              || (($nuovo['status'] ?? '') === 'restricted' && !empty($nuovo['is_member']));
+    return $era_fuori && $ora_dentro;
 }
 // ================= PERMESSI BOT =================
 function getBotPermissions($chat_id, $max_age_minutes = 60) {
