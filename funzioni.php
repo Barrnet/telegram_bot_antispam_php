@@ -447,6 +447,7 @@ function loadWelcomeState($chat_id) {
 }
 // Restringe i nuovi utenti e manda un unico messaggio di benvenuto col link alla verifica.
 // Il messaggio precedente del gruppo viene cancellato; il nuovo cita solo gli utenti appena entrati.
+// Ritorna true se il benvenuto è stato inviato.
 function avviaVerificaNuoviMembri($chat_id, array $members) {
     $nuovi = []; // id => nome
     foreach ($members as $m) {
@@ -459,7 +460,7 @@ function avviaVerificaNuoviMembri($chat_id, array $members) {
     }
     if (!$nuovi) {
         logVerifica($chat_id, "nessun utente ristretto: messaggio di benvenuto non inviato");
-        return;
+        return false;
     }
     ensureDir(__DIR__ . "/group_data/$chat_id");
     // Lock per gruppo: ingressi ravvicinati non devono lasciare due messaggi o perderne il riferimento
@@ -492,6 +493,7 @@ function avviaVerificaNuoviMembri($chat_id, array $members) {
             json_encode(['message_id' => $nuovo_id], JSON_PRETTY_PRINT), LOCK_EX);
     }
     if ($lock) { flock($lock, LOCK_UN); fclose($lock); }
+    return !empty($esito['ok']) && $nuovo_id > 0; // true = benvenuto inviato
 }
 // Stato di un utente nel gruppo: ritorna il "result" di getChatMember, oppure null se la chiamata fallisce
 function getMemberInfo($chat_id, $user_id) {

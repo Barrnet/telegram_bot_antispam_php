@@ -47,7 +47,12 @@ if (!empty($new_chat_members)) {
         logVerifica($id_chat, "ingresso [$ids_ingresso]: gruppo abilitato, permessi bot (cache): "
             . json_encode($bot_permissions));
         if ($bot_permissions['can_ban']) {
-            avviaVerificaNuoviMembri($id_chat, $new_chat_members);
+            $benvenuto_inviato = avviaVerificaNuoviMembri($id_chat, $new_chat_members);
+            // Cancello il messaggio di servizio "X è entrato" solo dopo aver inviato il benvenuto (serve il permesso di cancellare)
+            if ($benvenuto_inviato && !empty($bot_permissions['can_delete']) && $id_message) {
+                $ok = deleteMessages($id_chat, $id_message);
+                logVerifica($id_chat, "cancellazione messaggio di servizio ingresso $id_message: " . ($ok ? "ok" : "non riuscita"));
+            }
         } else {
             logVerifica($id_chat, "il bot non ha can_restrict_members (o la cache è vecchia: cancella group_data/$id_chat/bot_permissions.json)");
         }

@@ -29,4 +29,5 @@ define('TURNSTILE_SITE_KEY', 'XXXXXXXXXXXX');
 define('TURNSTILE_SECRET_KEY', 'XXXXXXXXXXXX');
 //validità massima (secondi) dell'id_token di login Telegram, calcolata dal campo iat
 define('LOGIN_MAX_AGE', 300);
+define('VERIFICA_TIMEOUT_ORE', 6);
 ?>
